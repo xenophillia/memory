@@ -1,0 +1,2066 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Poem</title>
+  <style>
+    :root {
+      --bg: #f3f0e7;
+      --panel: #ffffff;
+      --ink: #212121;
+      --grid: #b8b3a3;
+      --accent: #1f4f7a;
+      --mono-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      height: 100vh;
+      padding: 0;
+      background: #fff;
+      color: var(--ink);
+      font-family: var(--mono-font);
+      font-weight: 400;
+      font-style: normal;
+      display: flex;
+      flex-direction: row-reverse;
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    .panel {
+      background: #000;
+      color: #fff;
+      border-left: 1px solid #222;
+      border-radius: 0;
+      padding: 16px;
+      box-shadow: none;
+      overflow: hidden;
+      flex: 1 1 auto;
+      min-width: 260px;
+      height: 100vh;
+      position: relative;
+    }
+
+    .panel-stack {
+      height: 100%;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 12px;
+      padding-bottom: 56px;
+    }
+
+    .intro-stack {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column-reverse;
+      justify-content: flex-start;
+      gap: 6px;
+      padding: 0 2px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 1.15rem;
+      line-height: 1.35;
+      color: #fff;
+    }
+
+    .intro-line,
+    .intro-dot {
+      margin: 0;
+      min-height: 1.35em;
+    }
+
+    .panel-step {
+      display: none;
+    }
+
+    .panel-step.visible {
+      display: block;
+      animation: step-fade 220ms ease;
+    }
+
+    .settings-wrap.visible {
+      display: flex;
+    }
+
+    @keyframes step-fade {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .settings-wrap {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      border: 1px solid #fff;
+      border-radius: 0;
+      padding: 10px;
+      font-size: 1.08rem;
+      line-height: 1.35;
+      resize: vertical;
+      font-family: var(--mono-font);
+      color: #fff;
+      background: #000;
+      margin: 0;
+    }
+
+    .controls {
+      margin: 0;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .mode-group {
+      display: inline-flex;
+      border: 1px solid #fff;
+      background: #000;
+    }
+
+    .mode-btn {
+      border: 0;
+      border-right: 1px solid #fff;
+      background: transparent;
+      color: #fff;
+      padding: 7px 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: var(--mono-font);
+      cursor: pointer;
+    }
+
+    .mode-btn:last-child {
+      border-right: 0;
+    }
+
+    .mode-btn.active {
+      background: #fff;
+      color: #000;
+    }
+
+    .size-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 4px;
+    }
+
+    .size-group label {
+      font-size: 1rem;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    select {
+      border: 1px solid #fff;
+      background: #000;
+      color: #fff;
+      border-radius: 0;
+      padding: 7px 10px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .image-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      width: 100%;
+      padding: 0 4px;
+    }
+
+    .image-group label {
+      font-size: 1rem;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .image-group input[type="file"] {
+      max-width: 100%;
+      font-size: 0.95rem;
+      color: #fff;
+    }
+
+    .small-btn {
+      border: 1px solid #fff;
+      background: #000;
+      color: #fff;
+      border-radius: 0;
+      padding: 5px 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: var(--mono-font);
+      cursor: pointer;
+    }
+
+    .small-btn:hover {
+      background: #fff;
+      color: #000;
+    }
+
+    .meta {
+      margin: 0;
+      font-size: 1rem;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .speech-row {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 24px;
+    }
+
+    .speech-status {
+      font-size: 0.95rem;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+
+    .save-btn {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      z-index: 4;
+      text-transform: lowercase;
+    }
+
+    .canvas-wrap {
+      background: #fff;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: none;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      overflow: hidden;
+      flex: 0 0 auto;
+      width: calc(100vh * 12 / 18);
+      max-width: 100vw;
+      min-width: 0;
+      height: 100vh;
+    }
+
+    .canvas-frame {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border-radius: 0;
+      overflow: hidden;
+      border: 1px solid transparent;
+      opacity: 0;
+      transition: opacity 420ms ease, border-color 420ms ease, background-color 420ms ease;
+    }
+
+    .canvas-frame.revealed {
+      opacity: 1;
+      background: #fff;
+      border-color: #c9c3b2;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+    }
+
+    .flicker-char {
+      display: inline-block;
+      transition: color 120ms ease, background-color 120ms ease;
+      border-radius: 0;
+    }
+
+    .flicker-char.space {
+      min-width: 0.45ch;
+    }
+
+    .flicker-char.blackout {
+      opacity: 0;
+    }
+
+    @media (max-width: 920px) {
+      body {
+        display: block;
+        height: auto;
+        overflow: auto;
+      }
+
+      .panel {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        border-left: 0;
+        border-bottom: 1px solid #c9c3b2;
+      }
+
+      .canvas-wrap {
+        width: 100%;
+        height: auto;
+      }
+
+      .canvas-frame {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 12 / 18;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="panel">
+    <div class="panel-stack">
+      <div id="introStack" class="intro-stack" aria-live="polite" aria-label="Intro text"></div>
+
+      <div id="imageStep" class="panel-step">
+        <div class="image-group">
+          <label for="bgImageInput" class="flicker-source">Image</label>
+          <input id="bgImageInput" type="file" accept="image/*" />
+          <button id="clearBgBtn" class="small-btn flicker-source" type="button">Clear</button>
+        </div>
+      </div>
+
+      <div id="textStep" class="panel-step">
+        <textarea id="input" spellcheck="false">Type here. Spaces and punctuation are mapped too.</textarea>
+        <div class="speech-row">
+          <button id="speechBtn" class="small-btn flicker-source" type="button">Recite</button>
+          <span id="speechStatus" class="speech-status">Speech off</span>
+        </div>
+      </div>
+
+      <div id="settingsStep" class="panel-step settings-wrap">
+        <div class="controls">
+          <div class="mode-group" role="group" aria-label="Layout mode">
+            <button id="soupModeBtn" class="mode-btn flicker-source active" type="button">I</button>
+            <button id="normalModeBtn" class="mode-btn flicker-source" type="button">II</button>
+            <button id="checkModeBtn" class="mode-btn flicker-source" type="button">III</button>
+            <button id="wardModeBtn" class="mode-btn flicker-source" type="button">IV</button>
+          </div>
+          <div class="size-group">
+            <label for="cellSizeSelect" class="flicker-source">Cell</label>
+            <select id="cellSizeSelect">
+              <option value="20" selected>20×20</option>
+              <option value="40">40×40</option>
+              <option value="60">60×60</option>
+              <option value="80">80×80</option>
+              <option value="100">100×100</option>
+              <option value="120">120×120</option>
+              <option value="140">140×140</option>
+              <option value="160">160×160</option>
+              <option value="180">180×180</option>
+              <option value="200">200×200</option>
+            </select>
+          </div>
+        </div>
+        <div class="meta">
+          <span id="used">Used: 0</span>
+          <span id="capacity">Capacity: 0</span>
+          <span id="overflow">Overflow: 0</span>
+        </div>
+      </div>
+    </div>
+    <button id="saveBtn" class="small-btn save-btn panel-step flicker-source" type="button">save</button>
+  </section>
+
+  <section class="canvas-wrap">
+    <div class="canvas-frame">
+      <canvas id="gridCanvas" width="1200" height="1800"></canvas>
+    </div>
+  </section>
+
+  <script>
+    const canvas = document.getElementById("gridCanvas");
+    const ctx = canvas.getContext("2d");
+    const input = document.getElementById("input");
+    const soupModeBtn = document.getElementById("soupModeBtn");
+    const normalModeBtn = document.getElementById("normalModeBtn");
+    const checkModeBtn = document.getElementById("checkModeBtn");
+    const wardModeBtn = document.getElementById("wardModeBtn");
+    const cellSizeSelect = document.getElementById("cellSizeSelect");
+    const bgImageInput = document.getElementById("bgImageInput");
+    const clearBgBtn = document.getElementById("clearBgBtn");
+    const speechBtn = document.getElementById("speechBtn");
+    const speechStatus = document.getElementById("speechStatus");
+    const saveBtn = document.getElementById("saveBtn");
+    const usedLabel = document.getElementById("used");
+    const capacityLabel = document.getElementById("capacity");
+    const overflowLabel = document.getElementById("overflow");
+    const introStack = document.getElementById("introStack");
+    const imageStep = document.getElementById("imageStep");
+    const textStep = document.getElementById("textStep");
+    const settingsStep = document.getElementById("settingsStep");
+    const canvasFrame = document.querySelector(".canvas-frame");
+    let showGrid = false;
+    const MODE_SOUP = "soup";
+    const MODE_NORMAL = "normal";
+    const MODE_CHECK = "check";
+    const MODE_WARD = "ward";
+    let currentMode = MODE_SOUP;
+
+    let CELL_SIZE = Number(cellSizeSelect.value);
+    const CANVAS_BUFFER = 1;
+    const WIDTH = canvas.width;
+    const HEIGHT = canvas.height;
+    let COLS = 0;
+    let ROWS = 0;
+    let CELL_COUNT = 0;
+    let SAFE_CELL_COUNT = 0;
+    let GRID_OFFSET_X = 0;
+    let WARD_SESSION_SEED = Math.floor(Math.random() * 4294967296);
+    let bgSourceCanvas = null;
+    let BG_IMAGE_SEED = Math.floor(Math.random() * 4294967296);
+    let bgPatchPoolCache = null;
+    let bgPatchPoolCacheKey = "";
+    const SOUP_TURN_LETTERS = new Set(["A", "B", "C", "E", "H", "K", "M", "O", "P", "T", "X", "Y"]);
+    const MONO_FONT_STACK = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+    const INTRO_LINES = [
+      "what happens to a story when you retell it? does it get revived or rebuilt?",
+      "what does the text add to the memory, what does it take away?",
+      "does a recollected memory create a border between then and now?",
+    ];
+    const INTRO_INITIAL_DELAY_MS = 1200;
+    const INTRO_CHAR_MS = 72;
+    const INTRO_LINE_PAUSE_MS = 700;
+    const INTRO_STEP_PAUSE_MS = 880;
+    const EXPORT_WIDTH_300_DPI = 3600;
+    const EXPORT_HEIGHT_300_DPI = 5400;
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    let introSequenceStarted = false;
+    let speechRecognition = null;
+    let speechActive = false;
+    let speechBaseText = "";
+    let speechFinalText = "";
+    let controlFlickerInterval = null;
+    const hoverBlackoutTimers = new WeakMap();
+
+    function refreshGridMetrics() {
+      const rawCols = Math.floor(WIDTH / CELL_SIZE);
+      if (rawCols <= 0) {
+        COLS = 0;
+      } else {
+        COLS = rawCols % 2 === 0 ? rawCols - 1 : rawCols;
+      }
+      ROWS = Math.floor(HEIGHT / CELL_SIZE);
+      CELL_COUNT = COLS * ROWS;
+      SAFE_CELL_COUNT = Math.max(0, COLS - CANVAS_BUFFER * 2) * Math.max(0, ROWS - CANVAS_BUFFER * 2);
+      GRID_OFFSET_X = Math.floor((WIDTH - COLS * CELL_SIZE) / 2);
+    }
+
+    function normalizeText(text) {
+      return text.replace(/[\n\r\t]/g, " ").toUpperCase();
+    }
+
+    function splitWords(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return [];
+      return trimmed.split(/\s+/);
+    }
+
+    function buildSequentialCharEntries(text) {
+      const entries = [];
+      let currentWordIndex = -1;
+      let inWord = false;
+
+      for (const ch of Array.from(text)) {
+        if (ch === " ") {
+          entries.push({ ch, wordIndex: Math.max(0, currentWordIndex) });
+          inWord = false;
+          continue;
+        }
+
+        if (!inWord) {
+          currentWordIndex += 1;
+          inWord = true;
+        }
+
+        entries.push({ ch, wordIndex: Math.max(0, currentWordIndex) });
+      }
+
+      return entries;
+    }
+
+    function getEvenColumns(count, columnCount) {
+      if (count <= 0 || columnCount <= 0) return [];
+      if (count === 1) return [Math.floor((columnCount - 1) / 2)];
+      if (count >= columnCount) {
+        return Array.from({ length: columnCount }, (_, i) => i);
+      }
+
+      const cols = [];
+      const maxCol = columnCount - 1;
+      const step = maxCol / (count - 1);
+      let prev = -1;
+
+      for (let i = 0; i < count; i++) {
+        let col = Math.round(i * step);
+        const minAllowed = prev + 1;
+        const maxAllowed = maxCol - (count - 1 - i);
+
+        if (col < minAllowed) col = minAllowed;
+        if (col > maxAllowed) col = maxAllowed;
+
+        cols.push(col);
+        prev = col;
+      }
+
+      return cols;
+    }
+
+    function mirrorIndex(value, maxIndex) {
+      if (maxIndex <= 0) return 0;
+      const period = maxIndex * 2;
+      let folded = value % period;
+      if (folded < 0) folded += period;
+      if (folded > maxIndex) folded = period - folded;
+      return folded;
+    }
+
+    function createSeededRandom(seedText) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < seedText.length; i++) {
+        h ^= seedText.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+
+      return function nextRandom() {
+        h += 0x6d2b79f5;
+        let t = h;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function setSpeechStatus(message) {
+      if (!speechStatus) return;
+      speechStatus.textContent = message;
+    }
+
+    function wrapFlickerText(element) {
+      if (!element) return;
+      const text = element.textContent || "";
+      element.textContent = "";
+      for (const ch of Array.from(text)) {
+        const span = document.createElement("span");
+        span.className = "flicker-char";
+        if (ch === " ") {
+          span.classList.add("space");
+          span.textContent = "\u00a0";
+        } else {
+          span.textContent = ch;
+        }
+        element.appendChild(span);
+      }
+    }
+
+    function setFlickerText(element, text) {
+      if (!element) return;
+      element.textContent = text;
+      if (element.classList.contains("flicker-source")) {
+        wrapFlickerText(element);
+      }
+    }
+
+    function prepareControlFlicker() {
+      const sources = document.querySelectorAll(".flicker-source");
+      for (const source of sources) {
+        wrapFlickerText(source);
+      }
+    }
+
+    function startControlFlicker() {
+      if (controlFlickerInterval) clearInterval(controlFlickerInterval);
+
+      controlFlickerInterval = window.setInterval(() => {
+        const chars = Array.from(document.querySelectorAll(".flicker-source .flicker-char"));
+        if (!chars.length) return;
+        const pulseCount = 1 + Math.floor(Math.random() * Math.max(1, Math.floor(chars.length * 0.025)));
+        const picked = new Set();
+        for (let i = 0; i < pulseCount; i++) {
+          const idx = Math.floor(Math.random() * chars.length);
+          picked.add(chars[idx]);
+        }
+
+        for (const charEl of picked) {
+          charEl.classList.add("blackout");
+          const hold = 900 + Math.floor(Math.random() * 1700);
+          window.setTimeout(() => charEl.classList.remove("blackout"), hold);
+        }
+      }, 720);
+    }
+
+    function setupHoverBlackout() {
+      document.addEventListener("mouseover", (event) => {
+        const target = event.target;
+        if (!target || !target.classList || !target.classList.contains("flicker-char")) return;
+
+        const existing = hoverBlackoutTimers.get(target);
+        if (existing) clearTimeout(existing);
+
+        target.classList.add("blackout");
+        const timer = window.setTimeout(() => {
+          target.classList.remove("blackout");
+          hoverBlackoutTimers.delete(target);
+        }, 5000);
+        hoverBlackoutTimers.set(target, timer);
+      });
+    }
+
+    function mergeSpokenText(baseText, finalText, interimText) {
+      const merged = `${baseText}${finalText}${interimText}`.replace(/\s+/g, " ");
+      return merged.trimStart();
+    }
+
+    function stopSpeechCapture() {
+      if (!speechActive) return;
+      speechActive = false;
+      if (speechRecognition) {
+        try {
+          speechRecognition.stop();
+        } catch (error) {
+          // no-op
+        }
+      }
+      setSpeechStatus("Speech off");
+      setFlickerText(speechBtn, "Dictate");
+    }
+
+    function startSpeechCapture() {
+      if (!speechRecognition || speechActive) return;
+      speechActive = true;
+      speechBaseText = input.value ? `${input.value.trimEnd()} ` : "";
+      speechFinalText = "";
+      setSpeechStatus("Listening...");
+      setFlickerText(speechBtn, "Stop");
+      try {
+        speechRecognition.start();
+      } catch (error) {
+        speechActive = false;
+        setSpeechStatus("Speech unavailable");
+        setFlickerText(speechBtn, "Dictate");
+      }
+    }
+
+    function setupSpeechRecognition() {
+      if (!speechBtn || !speechStatus) return;
+      if (!SpeechRecognitionCtor) {
+        speechBtn.disabled = true;
+        setSpeechStatus("Speech unavailable");
+        return;
+      }
+
+      speechRecognition = new SpeechRecognitionCtor();
+      speechRecognition.lang = "en-US";
+      speechRecognition.continuous = true;
+      speechRecognition.interimResults = true;
+      speechRecognition.maxAlternatives = 1;
+
+      speechRecognition.onresult = (event) => {
+        let interimText = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const piece = result[0] && result[0].transcript ? result[0].transcript : "";
+          if (result.isFinal) {
+            speechFinalText += `${piece.trim()} `;
+          } else {
+            interimText += piece;
+          }
+        }
+        input.value = mergeSpokenText(speechBaseText, speechFinalText, interimText);
+        render();
+      };
+
+      speechRecognition.onerror = () => {
+        setSpeechStatus("Speech error");
+      };
+
+      speechRecognition.onend = () => {
+        if (speechActive) {
+          try {
+            speechRecognition.start();
+            return;
+          } catch (error) {
+            speechActive = false;
+          }
+        }
+        setSpeechStatus("Speech off");
+        setFlickerText(speechBtn, "Dictate");
+      };
+    }
+
+    function savePrintImage() {
+      const exportCanvas = makeCanvas(EXPORT_WIDTH_300_DPI, EXPORT_HEIGHT_300_DPI);
+      const exportCtx = exportCanvas.getContext("2d");
+      exportCtx.fillStyle = "#fff";
+      exportCtx.fillRect(0, 0, EXPORT_WIDTH_300_DPI, EXPORT_HEIGHT_300_DPI);
+      exportCtx.drawImage(canvas, 0, 0, EXPORT_WIDTH_300_DPI, EXPORT_HEIGHT_300_DPI);
+
+      exportCanvas.toBlob((blob) => {
+        if (!blob) return;
+        const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `grid-12x18in-300dpi-${stamp}.png`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    }
+
+    async function typeText(target, text, msPerChar) {
+      target.textContent = "";
+      for (const ch of Array.from(text)) {
+        target.textContent += ch;
+        await sleep(msPerChar);
+      }
+    }
+
+    function revealPanelStep(step) {
+      if (!step) return;
+      step.classList.add("visible");
+    }
+
+    async function runIntroSequence() {
+      if (introSequenceStarted) return;
+      introSequenceStarted = true;
+
+      await sleep(INTRO_INITIAL_DELAY_MS);
+      for (const lineText of INTRO_LINES) {
+        const line = document.createElement("p");
+        line.className = "intro-line";
+        introStack.appendChild(line);
+        await typeText(line, lineText, INTRO_CHAR_MS);
+        await sleep(INTRO_LINE_PAUSE_MS);
+      }
+
+      const dot = document.createElement("p");
+      dot.className = "intro-dot";
+      introStack.appendChild(dot);
+      await typeText(dot, ".", INTRO_CHAR_MS * 2);
+
+      await sleep(INTRO_STEP_PAUSE_MS);
+      revealPanelStep(imageStep);
+      await sleep(INTRO_STEP_PAUSE_MS);
+      revealPanelStep(textStep);
+      await sleep(INTRO_STEP_PAUSE_MS);
+      revealPanelStep(settingsStep);
+      await sleep(INTRO_STEP_PAUSE_MS);
+      revealPanelStep(saveBtn);
+      await sleep(INTRO_STEP_PAUSE_MS);
+
+      canvasFrame.classList.add("revealed");
+      render();
+    }
+
+    function makeCanvas(width, height) {
+      const c = document.createElement("canvas");
+      c.width = width;
+      c.height = height;
+      return c;
+    }
+
+    function prepareBackgroundImage(image) {
+      const maxImageSide = 4096;
+      const scale = Math.min(1, maxImageSide / Math.max(image.width, image.height));
+      const targetW = Math.max(1, Math.round(image.width * scale));
+      const targetH = Math.max(1, Math.round(image.height * scale));
+      const sourceCanvas = makeCanvas(targetW, targetH);
+      const sourceCtx = sourceCanvas.getContext("2d");
+      sourceCtx.drawImage(image, 0, 0, targetW, targetH);
+      bgSourceCanvas = sourceCanvas;
+      BG_IMAGE_SEED = Math.floor(Math.random() * 4294967296);
+      bgPatchPoolCache = null;
+      bgPatchPoolCacheKey = "";
+    }
+
+    function clearBackgroundImage() {
+      bgSourceCanvas = null;
+      bgPatchPoolCache = null;
+      bgPatchPoolCacheKey = "";
+      bgImageInput.value = "";
+    }
+
+    function loadBackgroundFromFile(file) {
+      if (!file) return;
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        prepareBackgroundImage(img);
+        URL.revokeObjectURL(objectUrl);
+        render();
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+      };
+      img.src = objectUrl;
+    }
+
+    function hashToUnit(seed) {
+      let x = seed | 0;
+      x ^= x >>> 16;
+      x = Math.imul(x, 0x7feb352d);
+      x ^= x >>> 15;
+      x = Math.imul(x, 0x846ca68b);
+      x ^= x >>> 16;
+      return (x >>> 0) / 4294967296;
+    }
+
+    function collectGapCells(layout) {
+      if (COLS <= 0 || ROWS <= 0) return [];
+      const gapMap = new Uint8Array(CELL_COUNT);
+
+      for (const placement of layout.placements) {
+        if (placement.ch !== " ") continue;
+        const size = Math.max(1, placement.scale || 1);
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const rr = placement.row + r;
+            const cc = placement.col + c;
+            if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) continue;
+            const idx = rr * COLS + cc;
+            gapMap[idx] = 1;
+          }
+        }
+      }
+
+      const indices = [];
+      for (let idx = 0; idx < CELL_COUNT; idx++) {
+        if (gapMap[idx]) indices.push(idx);
+      }
+      return indices;
+    }
+
+    function drawRandomPatchInCell(row, col) {
+      if (!bgSourceCanvas) return;
+      const srcW = bgSourceCanvas.width;
+      const srcH = bgSourceCanvas.height;
+      if (srcW <= 0 || srcH <= 0) return;
+
+      const patchW = Math.min(CELL_SIZE, srcW);
+      const patchH = Math.min(CELL_SIZE, srcH);
+      const maxX = Math.max(0, srcW - patchW);
+      const maxY = Math.max(0, srcH - patchH);
+
+      const seedBase =
+        BG_IMAGE_SEED ^
+        Math.imul(row + 1, 73856093) ^
+        Math.imul(col + 1, 19349663);
+
+      const rx = hashToUnit(seedBase);
+      const ry = hashToUnit(seedBase ^ 0x9e3779b9);
+      const sx = maxX > 0 ? Math.floor(rx * (maxX + 1)) : 0;
+      const sy = maxY > 0 ? Math.floor(ry * (maxY + 1)) : 0;
+
+      const dx = GRID_OFFSET_X + col * CELL_SIZE;
+      const dy = row * CELL_SIZE;
+      ctx.drawImage(bgSourceCanvas, sx, sy, patchW, patchH, dx, dy, CELL_SIZE, CELL_SIZE);
+    }
+
+    function drawGapImagePatches(layout) {
+      if (!bgSourceCanvas) return;
+      const gapIndices = collectGapCells(layout);
+      for (let i = 0; i < gapIndices.length; i++) {
+        const idx = gapIndices[i];
+        const row = Math.floor(idx / COLS);
+        const col = idx % COLS;
+        drawRandomPatchInCell(row, col);
+      }
+    }
+
+    function drawRandomStripInRow(row, startCol, length, variantSeed) {
+      if (!bgSourceCanvas) return;
+      if (length <= 0 || startCol < 0 || startCol + length > COLS) return;
+
+      const srcW = bgSourceCanvas.width;
+      const srcH = bgSourceCanvas.height;
+      if (srcW <= 0 || srcH <= 0) return;
+
+      const destW = length * CELL_SIZE;
+      const patchW = Math.max(1, Math.min(destW, srcW));
+      const patchH = Math.max(1, Math.min(CELL_SIZE, srcH));
+      const maxX = Math.max(0, srcW - patchW);
+      const maxY = Math.max(0, srcH - patchH);
+
+      const sx = maxX > 0 ? Math.floor(hashToUnit(variantSeed ^ 0x7f4a7c15) * (maxX + 1)) : 0;
+      const sy = maxY > 0 ? Math.floor(hashToUnit(variantSeed ^ 0x94d049bb) * (maxY + 1)) : 0;
+
+      const dx = GRID_OFFSET_X + startCol * CELL_SIZE;
+      const dy = row * CELL_SIZE;
+      ctx.drawImage(bgSourceCanvas, sx, sy, patchW, patchH, dx, dy, destW, CELL_SIZE);
+    }
+
+    function drawNormalInterlineSnapshots(layout) {
+      if (!bgSourceCanvas) return;
+
+      const usedRowsSet = new Set();
+      for (const placement of layout.placements) {
+        if (placement.ch === " ") continue;
+        usedRowsSet.add(placement.row);
+      }
+
+      const usedRows = Array.from(usedRowsSet).sort((a, b) => a - b);
+      if (usedRows.length < 2) return;
+
+      for (let i = 0; i < usedRows.length - 1; i++) {
+        const top = usedRows[i];
+        const bottom = usedRows[i + 1];
+        if (bottom - top <= 1) continue;
+
+        for (let row = top + 1; row < bottom; row++) {
+          const seedBase = BG_IMAGE_SEED ^ Math.imul(row + 1, 2654435761);
+          const length = 1 + Math.floor(hashToUnit(seedBase ^ 0x517cc1b7) * COLS);
+          const maxStart = Math.max(0, COLS - length);
+          const startCol = maxStart > 0
+            ? Math.floor(hashToUnit(seedBase ^ 0x2f6e2b1d) * (maxStart + 1))
+            : 0;
+
+          drawRandomStripInRow(row, startCol, length, seedBase);
+        }
+      }
+    }
+
+    function drawImagePatchIntoCell(row, col, patch) {
+      const dx = GRID_OFFSET_X + col * CELL_SIZE;
+      const dy = row * CELL_SIZE;
+      ctx.drawImage(
+        bgSourceCanvas,
+        patch.sx,
+        patch.sy,
+        patch.sw,
+        patch.sh,
+        dx,
+        dy,
+        CELL_SIZE,
+        CELL_SIZE
+      );
+    }
+
+    function drawImagePatchInDiamondCell(row, col, sx, sy, sw, sh) {
+      if (!bgSourceCanvas) return;
+      if (sw <= 0 || sh <= 0) return;
+
+      const dx = GRID_OFFSET_X + col * CELL_SIZE;
+      const dy = row * CELL_SIZE;
+      const half = CELL_SIZE / 2;
+      const cx = dx + half;
+      const cy = dy + half;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - half);
+      ctx.lineTo(cx + half, cy);
+      ctx.lineTo(cx, cy + half);
+      ctx.lineTo(cx - half, cy);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(bgSourceCanvas, sx, sy, sw, sh, dx, dy, CELL_SIZE, CELL_SIZE);
+      ctx.restore();
+    }
+
+    function canPlaceSoupImageFragment(row, col, length, dirY, occupied, minRow, maxRow, minCol, maxCol) {
+      for (let step = 0; step < length; step++) {
+        const rr = row + dirY * step;
+        const cc = col - step;
+        if (rr < minRow || rr > maxRow || cc < minCol || cc > maxCol) return false;
+        const idx = rr * COLS + cc;
+        if (occupied[idx]) return false;
+      }
+      return true;
+    }
+
+    function markSoupImageFragment(row, col, length, dirY, occupied) {
+      for (let step = 0; step < length; step++) {
+        const rr = row + dirY * step;
+        const cc = col - step;
+        occupied[rr * COLS + cc] = 1;
+      }
+    }
+
+    function drawSoupWordFragments(text, layout) {
+      if (!bgSourceCanvas) return;
+      const words = splitWords(text);
+      if (!words.length) return;
+      if (COLS <= 0 || ROWS <= 0) return;
+
+      const minRow = CANVAS_BUFFER;
+      const maxRow = ROWS - CANVAS_BUFFER - 1;
+      const minCol = CANVAS_BUFFER;
+      const maxCol = COLS - CANVAS_BUFFER - 1;
+      if (minRow > maxRow || minCol > maxCol) return;
+
+      const maxDiagLength = Math.min(maxCol - minCol + 1, maxRow - minRow + 1);
+      if (maxDiagLength <= 0) return;
+
+      const srcW = bgSourceCanvas.width;
+      const srcH = bgSourceCanvas.height;
+      if (srcW <= 0 || srcH <= 0) return;
+
+      const startCells = [];
+      for (let col = maxCol; col >= minCol; col--) {
+        for (let row = minRow; row <= maxRow; row++) {
+          startCells.push({ row, col });
+        }
+      }
+      if (!startCells.length) return;
+
+      const occupied = new Uint8Array(CELL_COUNT);
+      if (layout && Array.isArray(layout.placements)) {
+        for (const placement of layout.placements) {
+          if (placement.ch === " ") continue;
+          const size = Math.max(1, placement.scale || 1);
+          for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+              const rr = placement.row + r;
+              const cc = placement.col + c;
+              if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) continue;
+              occupied[rr * COLS + cc] = 1;
+            }
+          }
+        }
+      }
+      const randomFn = createSeededRandom(
+        `SOUP_WORD_FRAGMENTS|${BG_IMAGE_SEED}|${CELL_SIZE}|${COLS}|${ROWS}|${text}`
+      );
+
+      let startIndex = 0;
+      for (let wordIndex = 0; wordIndex < words.length && startIndex < startCells.length; wordIndex++) {
+        const rawLength = Array.from(words[wordIndex]).length;
+        if (rawLength <= 0) continue;
+        const desiredLength = Math.max(1, Math.min(rawLength, maxDiagLength));
+        const preferredDirY = randomFn() < 0.5 ? 1 : -1;
+        const tryDirs = [preferredDirY, -preferredDirY];
+
+        let placed = false;
+        while (!placed && startIndex < startCells.length) {
+          const start = startCells[startIndex];
+          startIndex += 1;
+
+          for (const dirY of tryDirs) {
+            let fitLength = Math.min(desiredLength, start.col - minCol + 1);
+            if (dirY > 0) {
+              fitLength = Math.min(fitLength, maxRow - start.row + 1);
+            } else {
+              fitLength = Math.min(fitLength, start.row - minRow + 1);
+            }
+            if (fitLength <= 0) continue;
+            if (!canPlaceSoupImageFragment(start.row, start.col, fitLength, dirY, occupied, minRow, maxRow, minCol, maxCol)) {
+              continue;
+            }
+
+            const stripPixelWidth = Math.max(1, fitLength * CELL_SIZE);
+            const patchW = Math.max(1, Math.min(stripPixelWidth, srcW));
+            const patchH = Math.max(1, Math.min(CELL_SIZE, srcH));
+            const maxX = Math.max(0, srcW - patchW);
+            const maxY = Math.max(0, srcH - patchH);
+            const sx = maxX > 0 ? Math.floor(randomFn() * (maxX + 1)) : 0;
+            const sy = maxY > 0 ? Math.floor(randomFn() * (maxY + 1)) : 0;
+
+            for (let step = 0; step < fitLength; step++) {
+              const rr = start.row + dirY * step;
+              const cc = start.col - step;
+              const srcStart = Math.floor((step * patchW) / fitLength);
+              const srcEnd = Math.floor(((step + 1) * patchW) / fitLength);
+              const sw = Math.max(1, srcEnd - srcStart);
+              const cellSx = Math.min(srcW - sw, sx + srcStart);
+              drawImagePatchInDiamondCell(rr, cc, cellSx, sy, sw, patchH);
+            }
+
+            markSoupImageFragment(start.row, start.col, fitLength, dirY, occupied);
+            placed = true;
+            break;
+          }
+        }
+      }
+    }
+
+    function getImagePatchPool() {
+      if (!bgSourceCanvas) return [];
+
+      const cacheKey = `${bgSourceCanvas.width}x${bgSourceCanvas.height}|${CELL_SIZE}|${BG_IMAGE_SEED}`;
+      if (bgPatchPoolCache && bgPatchPoolCacheKey === cacheKey) {
+        return bgPatchPoolCache;
+      }
+
+      const srcW = bgSourceCanvas.width;
+      const srcH = bgSourceCanvas.height;
+      const srcCtx = bgSourceCanvas.getContext("2d");
+      const srcData = srcCtx.getImageData(0, 0, srcW, srcH).data;
+      const step = Math.max(1, CELL_SIZE);
+      const patches = [];
+
+      for (let sy = 0; sy < srcH; sy += step) {
+        for (let sx = 0; sx < srcW; sx += step) {
+          const sw = Math.min(step, srcW - sx);
+          const sh = Math.min(step, srcH - sy);
+          if (sw <= 0 || sh <= 0) continue;
+
+          const sampleStep = sw * sh > 1024 ? 2 : 1;
+          let rSum = 0;
+          let gSum = 0;
+          let bSum = 0;
+          let samples = 0;
+
+          for (let y = 0; y < sh; y += sampleStep) {
+            const py = sy + y;
+            for (let x = 0; x < sw; x += sampleStep) {
+              const px = sx + x;
+              const idx = (py * srcW + px) * 4;
+              rSum += srcData[idx];
+              gSum += srcData[idx + 1];
+              bSum += srcData[idx + 2];
+              samples++;
+            }
+          }
+
+          if (samples <= 0) continue;
+          const r = (rSum / samples) / 255;
+          const g = (gSum / samples) / 255;
+          const b = (bSum / samples) / 255;
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const lightness = (max + min) / 2;
+          const denom = 1 - Math.abs(2 * lightness - 1);
+          const saturation = max === min || denom <= 0 ? 0 : (max - min) / denom;
+          let hue = 0;
+          if (max !== min) {
+            if (max === r) {
+              hue = ((g - b) / (max - min)) % 6;
+            } else if (max === g) {
+              hue = (b - r) / (max - min) + 2;
+            } else {
+              hue = (r - g) / (max - min) + 4;
+            }
+            hue *= 60;
+            if (hue < 0) hue += 360;
+          }
+
+          patches.push({ sx, sy, sw, sh, lightness, saturation, hue });
+        }
+      }
+
+      if (!patches.length) {
+        patches.push({ sx: 0, sy: 0, sw: srcW, sh: srcH, lightness: 0.5, saturation: 0, hue: 0 });
+      }
+
+      bgPatchPoolCache = patches;
+      bgPatchPoolCacheKey = cacheKey;
+      return patches;
+    }
+
+    function getExtremeCheckPatchSubset(patches) {
+      if (!patches.length) return [];
+      if (patches.length <= 10) return patches.slice();
+
+      const byLightAsc = patches.slice().sort((a, b) => a.lightness - b.lightness);
+      const bucketCount = 5;
+      const subset = [];
+      const seen = new Set();
+
+      function addPatch(patch) {
+        const key = `${patch.sx}|${patch.sy}|${patch.sw}|${patch.sh}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        subset.push(patch);
+      }
+
+      // Always keep the global darkest and lightest patches.
+      addPatch(byLightAsc[0]);
+      addPatch(byLightAsc[byLightAsc.length - 1]);
+
+      // For each lightness bucket, keep every 5th entry and bucket edges.
+      for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex++) {
+        const start = Math.floor((bucketIndex * byLightAsc.length) / bucketCount);
+        const end = Math.floor(((bucketIndex + 1) * byLightAsc.length) / bucketCount);
+        if (end <= start) continue;
+
+        const bucket = byLightAsc.slice(start, end);
+        addPatch(bucket[0]);
+        for (let i = 0; i < bucket.length; i += 5) {
+          addPatch(bucket[i]);
+        }
+        addPatch(bucket[bucket.length - 1]);
+      }
+
+      return subset.length ? subset : byLightAsc;
+    }
+
+    function hslToRgb(h, s, l) {
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const hp = ((h % 360) + 360) % 360 / 60;
+      const x = c * (1 - Math.abs((hp % 2) - 1));
+      let r1 = 0;
+      let g1 = 0;
+      let b1 = 0;
+
+      if (hp < 1) {
+        r1 = c; g1 = x;
+      } else if (hp < 2) {
+        r1 = x; g1 = c;
+      } else if (hp < 3) {
+        g1 = c; b1 = x;
+      } else if (hp < 4) {
+        g1 = x; b1 = c;
+      } else if (hp < 5) {
+        r1 = x; b1 = c;
+      } else {
+        r1 = c; b1 = x;
+      }
+
+      const m = l - c / 2;
+      return {
+        r: Math.round((r1 + m) * 255),
+        g: Math.round((g1 + m) * 255),
+        b: Math.round((b1 + m) * 255),
+      };
+    }
+
+    function buildCheckSafeZone(layout) {
+      const blocked = new Uint8Array(CELL_COUNT);
+
+      for (const placement of layout.placements) {
+        if (placement.ch === " ") continue;
+        const size = Math.max(1, placement.scale || 1);
+        const rowStart = placement.row;
+        const rowEnd = placement.row + size - 1;
+        const colStart = placement.col;
+        const colEnd = placement.col + size - 1;
+
+        for (let rr = rowStart - 1; rr <= rowEnd + 1; rr++) {
+          if (rr < 0 || rr >= ROWS) continue;
+          for (let cc = colStart - 1; cc <= colEnd + 1; cc++) {
+            if (cc < 0 || cc >= COLS) continue;
+            blocked[rr * COLS + cc] = 1;
+          }
+        }
+      }
+
+      return blocked;
+    }
+
+    function getNeighborIndices(idx) {
+      const row = Math.floor(idx / COLS);
+      const col = idx % COLS;
+      const neighbors = [];
+      const dirs = [
+        { dr: -1, dc: 0 },
+        { dr: 1, dc: 0 },
+        { dr: 0, dc: -1 },
+        { dr: 0, dc: 1 },
+        { dr: -1, dc: -1 },
+        { dr: -1, dc: 1 },
+        { dr: 1, dc: -1 },
+        { dr: 1, dc: 1 },
+      ];
+      for (const dir of dirs) {
+        const rr = row + dir.dr;
+        const cc = col + dir.dc;
+        if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) continue;
+        neighbors.push(rr * COLS + cc);
+      }
+      return neighbors;
+    }
+
+    function growIsland(seedIdx, availableMap, targetSize, randomFn) {
+      const island = [];
+      const frontier = [seedIdx];
+      const queued = new Uint8Array(CELL_COUNT);
+      queued[seedIdx] = 1;
+
+      while (frontier.length && island.length < targetSize) {
+        const pick = Math.floor(randomFn() * frontier.length);
+        const idx = frontier[pick];
+        frontier[pick] = frontier[frontier.length - 1];
+        frontier.pop();
+        if (!availableMap[idx]) continue;
+
+        availableMap[idx] = 0;
+        island.push(idx);
+
+        const neighbors = getNeighborIndices(idx);
+        for (const nextIdx of neighbors) {
+          if (!availableMap[nextIdx]) continue;
+          if (queued[nextIdx]) continue;
+          if (randomFn() < 0.72 || island.length < 3) {
+            frontier.push(nextIdx);
+            queued[nextIdx] = 1;
+          }
+        }
+      }
+
+      return island;
+    }
+
+    function fillCheckIslandCells(islandCells, basePatch, randomFn) {
+      const baseHue = basePatch.hue;
+      const baseSat = clamp(basePatch.saturation * (0.82 + randomFn() * 0.32), 0.04, 1);
+      const baseLight = clamp(basePatch.lightness * (0.86 + randomFn() * 0.28), 0.04, 0.96);
+
+      for (const idx of islandCells) {
+        const row = Math.floor(idx / COLS);
+        const col = idx % COLS;
+
+        const hue = baseHue + (randomFn() - 0.5) * 24;
+        const sat = clamp(baseSat + (randomFn() - 0.5) * 0.14, 0.04, 1);
+        const light = clamp(baseLight + (randomFn() - 0.5) * 0.14, 0.04, 0.96);
+        const rgb = hslToRgb(hue, sat, light);
+
+        ctx.fillStyle = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+        const dx = GRID_OFFSET_X + col * CELL_SIZE;
+        const dy = row * CELL_SIZE;
+        ctx.fillRect(dx, dy, CELL_SIZE, CELL_SIZE);
+      }
+    }
+
+    function drawCheckColorSortedMosaic(layout) {
+      if (!bgSourceCanvas) return;
+      if (COLS <= 0 || ROWS <= 0) return;
+
+      const blocked = buildCheckSafeZone(layout);
+      const available = new Uint8Array(CELL_COUNT);
+      const freeIndices = [];
+      for (let idx = 0; idx < CELL_COUNT; idx++) {
+        if (blocked[idx]) continue;
+        available[idx] = 1;
+        freeIndices.push(idx);
+      }
+      if (!freeIndices.length) return;
+
+      const fullPatchPool = getImagePatchPool();
+      if (!fullPatchPool.length) return;
+      const reducedPool = getExtremeCheckPatchSubset(fullPatchPool);
+      if (!reducedPool.length) return;
+
+      const byLightness = reducedPool.slice().sort((a, b) => {
+        if (b.lightness !== a.lightness) return b.lightness - a.lightness;
+        return a.saturation - b.saturation;
+      });
+
+      const randomFn = createSeededRandom(
+        `CHECK_ISLANDS|${BG_IMAGE_SEED}|${COLS}|${ROWS}|${CELL_SIZE}|${layout.placements.length}`
+      );
+
+      const targetFill = Math.floor(freeIndices.length * 0.58);
+      let filled = 0;
+      let safety = 0;
+      const maxSafety = Math.max(1, CELL_COUNT * 8);
+
+      while (filled < targetFill && safety < maxSafety) {
+        safety++;
+        const seed = freeIndices[Math.floor(randomFn() * freeIndices.length)];
+        if (!available[seed]) continue;
+
+        const maxIsland = Math.min(22, targetFill - filled);
+        const islandSize = 1 + Math.floor(randomFn() * Math.max(1, maxIsland));
+        const island = growIsland(seed, available, islandSize, randomFn);
+        if (!island.length) continue;
+
+        const rank = Math.floor((Math.floor(seed / COLS) / Math.max(1, ROWS - 1)) * (byLightness.length - 1));
+        const indexBias = clamp(rank + Math.floor((randomFn() - 0.5) * 5), 0, byLightness.length - 1);
+        const basePatch = byLightness[indexBias];
+
+        fillCheckIslandCells(island, basePatch, randomFn);
+        filled += island.length;
+      }
+    }
+
+    function drawModeImageTreatment(layout, text) {
+      if (currentMode === MODE_SOUP) {
+        drawSoupWordFragments(text, layout);
+        return;
+      }
+      if (currentMode === MODE_NORMAL) {
+        drawNormalInterlineSnapshots(layout);
+        return;
+      }
+      if (currentMode === MODE_CHECK) {
+        drawCheckColorSortedMosaic(layout);
+        return;
+      }
+      drawGapImagePatches(layout);
+    }
+
+    function getShuffledIndices(length, randomFn) {
+      const indices = Array.from({ length }, (_, i) => i);
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(randomFn() * (i + 1));
+        const tmp = indices[i];
+        indices[i] = indices[j];
+        indices[j] = tmp;
+      }
+      return indices;
+    }
+
+    function buildWardRowBlocked(row, occupied) {
+      const blocked = new Uint8Array(COLS);
+      for (let col = 0; col < COLS; col++) {
+        if (!occupied[row * COLS + col]) continue;
+        blocked[col] = 1;
+        if (col > 0) blocked[col - 1] = 1;
+        if (col + 1 < COLS) blocked[col + 1] = 1;
+      }
+      return blocked;
+    }
+
+    function buildWardColBlocked(col, occupied) {
+      const blocked = new Uint8Array(ROWS);
+      for (let row = 0; row < ROWS; row++) {
+        if (!occupied[row * COLS + col]) continue;
+        blocked[row] = 1;
+        if (row > 0) blocked[row - 1] = 1;
+        if (row + 1 < ROWS) blocked[row + 1] = 1;
+      }
+      return blocked;
+    }
+
+    function countWardRowCapacity(row, dir, occupied, blocked) {
+      let capacity = 0;
+      if (dir === 1) {
+        for (let col = 0; col < COLS; col++) {
+          const idx = row * COLS + col;
+          if (!blocked[col] && !occupied[idx]) capacity++;
+        }
+      } else {
+        for (let col = COLS - 1; col >= 0; col--) {
+          const idx = row * COLS + col;
+          if (!blocked[col] && !occupied[idx]) capacity++;
+        }
+      }
+      return capacity;
+    }
+
+    function countWardColCapacity(col, dir, occupied, blocked) {
+      let capacity = 0;
+      if (dir === 1) {
+        for (let row = 0; row < ROWS; row++) {
+          const idx = row * COLS + col;
+          if (!blocked[row] && !occupied[idx]) capacity++;
+        }
+      } else {
+        for (let row = ROWS - 1; row >= 0; row--) {
+          const idx = row * COLS + col;
+          if (!blocked[row] && !occupied[idx]) capacity++;
+        }
+      }
+      return capacity;
+    }
+
+    function placeWardRow(entries, startIndex, row, dir, occupied, blocked, placements) {
+      let placed = 0;
+      if (dir === 1) {
+        for (let col = 0; col < COLS; col++) {
+          if (startIndex + placed >= entries.length) break;
+          const idx = row * COLS + col;
+          if (blocked[col] || occupied[idx]) continue;
+          const entry = entries[startIndex + placed];
+          placements.push({ ch: entry.ch, row, col, scale: 1, dir: 0, wordIndex: entry.wordIndex });
+          occupied[idx] = 1;
+          placed++;
+        }
+      } else {
+        for (let col = COLS - 1; col >= 0; col--) {
+          if (startIndex + placed >= entries.length) break;
+          const idx = row * COLS + col;
+          if (blocked[col] || occupied[idx]) continue;
+          const entry = entries[startIndex + placed];
+          placements.push({ ch: entry.ch, row, col, scale: 1, dir: 0, wordIndex: entry.wordIndex });
+          occupied[idx] = 1;
+          placed++;
+        }
+      }
+      return placed;
+    }
+
+    function placeWardCol(entries, startIndex, col, dir, occupied, blocked, placements) {
+      let placed = 0;
+      if (dir === 1) {
+        for (let row = 0; row < ROWS; row++) {
+          if (startIndex + placed >= entries.length) break;
+          const idx = row * COLS + col;
+          if (blocked[row] || occupied[idx]) continue;
+          const entry = entries[startIndex + placed];
+          placements.push({ ch: entry.ch, row, col, scale: 1, dir: 0, wordIndex: entry.wordIndex });
+          occupied[idx] = 1;
+          placed++;
+        }
+      } else {
+        for (let row = ROWS - 1; row >= 0; row--) {
+          if (startIndex + placed >= entries.length) break;
+          const idx = row * COLS + col;
+          if (blocked[row] || occupied[idx]) continue;
+          const entry = entries[startIndex + placed];
+          placements.push({ ch: entry.ch, row, col, scale: 1, dir: 0, wordIndex: entry.wordIndex });
+          occupied[idx] = 1;
+          placed++;
+        }
+      }
+      return placed;
+    }
+
+    function chooseWardRowCandidate(dir, occupied, randomFn) {
+      const rowOrder = getShuffledIndices(ROWS, randomFn);
+      for (const row of rowOrder) {
+        const blocked = buildWardRowBlocked(row, occupied);
+        const capacity = countWardRowCapacity(row, dir, occupied, blocked);
+        if (capacity > 0) return { row, blocked };
+      }
+      return null;
+    }
+
+    function chooseWardColCandidate(dir, occupied, randomFn) {
+      const colOrder = getShuffledIndices(COLS, randomFn);
+      for (const col of colOrder) {
+        const blocked = buildWardColBlocked(col, occupied);
+        const capacity = countWardColCapacity(col, dir, occupied, blocked);
+        if (capacity > 0) return { col, blocked };
+      }
+      return null;
+    }
+
+    function canPlaceBlock(row, col, size, occupied, direction) {
+      const rowStart = direction === 1 ? row - (size - 1) : row;
+      if (
+        rowStart < CANVAS_BUFFER ||
+        rowStart + size > ROWS - CANVAS_BUFFER ||
+        col < CANVAS_BUFFER ||
+        col + size > COLS - CANVAS_BUFFER
+      ) {
+        return false;
+      }
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const idx = (rowStart + r) * COLS + (col + c);
+          if (occupied[idx]) return false;
+        }
+      }
+      return true;
+    }
+
+    function occupyBlock(row, col, size, occupied, direction) {
+      const rowStart = direction === 1 ? row - (size - 1) : row;
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const idx = (rowStart + r) * COLS + (col + c);
+          occupied[idx] = 1;
+        }
+      }
+      return rowStart;
+    }
+
+    function countUsedCells(occupied) {
+      let usedCells = 0;
+      for (const value of occupied) {
+        usedCells += value;
+      }
+      return usedCells;
+    }
+
+    function getSoupStartState() {
+      const minRow = CANVAS_BUFFER;
+      const maxRow = ROWS - CANVAS_BUFFER - 1;
+      const minCol = CANVAS_BUFFER;
+      const maxCol = COLS - CANVAS_BUFFER - 1;
+      if (minRow > maxRow || minCol > maxCol) return null;
+      return { row: maxRow, col: minCol, dx: 1, dy: -1 };
+    }
+
+    function nextSoupStep(row, col, dx, dy) {
+      const minRow = CANVAS_BUFFER;
+      const maxRow = ROWS - CANVAS_BUFFER - 1;
+      const minCol = CANVAS_BUFFER;
+      const maxCol = COLS - CANVAS_BUFFER - 1;
+
+      let nextDx = dx;
+      let nextDy = dy;
+      let nextRow = row + nextDy;
+      let nextCol = col + nextDx;
+
+      if (nextRow < minRow || nextRow > maxRow) {
+        nextDy *= -1;
+        nextRow = row + nextDy;
+      }
+      if (nextCol < minCol || nextCol > maxCol) {
+        nextDx *= -1;
+        nextCol = col + nextDx;
+      }
+
+      if (
+        nextRow < minRow ||
+        nextRow > maxRow ||
+        nextCol < minCol ||
+        nextCol > maxCol
+      ) {
+        return null;
+      }
+
+      return { row: nextRow, col: nextCol, dx: nextDx, dy: nextDy };
+    }
+
+    function seekNextFreeSoupCell(row, col, dx, dy, occupied) {
+      let curRow = row;
+      let curCol = col;
+      let curDx = dx;
+      let curDy = dy;
+      const guard = Math.max(1, SAFE_CELL_COUNT * 4);
+
+      for (let steps = 0; steps < guard; steps++) {
+        const idx = curRow * COLS + curCol;
+        if (!occupied[idx] && canPlaceBlock(curRow, curCol, 1, occupied, 0)) {
+          return { row: curRow, col: curCol, dx: curDx, dy: curDy };
+        }
+
+        const next = nextSoupStep(curRow, curCol, curDx, curDy);
+        if (!next) break;
+        curRow = next.row;
+        curCol = next.col;
+        curDx = next.dx;
+        curDy = next.dy;
+      }
+
+      return null;
+    }
+
+    function buildPlacementsSoup(charEntries) {
+      const occupied = new Uint8Array(CELL_COUNT);
+      const placements = [];
+      const start = getSoupStartState();
+      if (!start) {
+        return { placements, usedCells: 0, placedChars: 0 };
+      }
+
+      let row = start.row;
+      let col = start.col;
+      let dx = start.dx;
+      let dy = start.dy;
+      let placedChars = 0;
+
+      for (const entry of charEntries) {
+        const ch = entry.ch;
+        const freeCell = seekNextFreeSoupCell(row, col, dx, dy, occupied);
+        if (!freeCell) break;
+
+        row = freeCell.row;
+        col = freeCell.col;
+        dx = freeCell.dx;
+        dy = freeCell.dy;
+
+        const boxRow = occupyBlock(row, col, 1, occupied, 0);
+        const dir = dx * dy < 0 ? 1 : 0;
+        placements.push({ ch, row: boxRow, col, scale: 1, dir, wordIndex: entry.wordIndex });
+        placedChars++;
+
+        if (SOUP_TURN_LETTERS.has(ch)) {
+          dy *= -1;
+          dx = 1;
+        }
+
+        const next = nextSoupStep(row, col, dx, dy);
+        if (!next) break;
+        row = next.row;
+        col = next.col;
+        dx = next.dx;
+        dy = next.dy;
+      }
+
+      return { placements, usedCells: countUsedCells(occupied), placedChars };
+    }
+
+    function buildPlacementsNormal(text) {
+      const words = splitWords(text);
+      const placements = [];
+      const totalChars = words.reduce((sum, word) => sum + Array.from(word).length, 0);
+      let placedChars = 0;
+
+      for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+        const row = wordIndex * 2;
+        if (row >= ROWS) break;
+        if (COLS <= 0) break;
+
+        const letters = Array.from(words[wordIndex]);
+        if (!letters.length) continue;
+
+        const placeCount = Math.min(letters.length, COLS);
+        const cols = getEvenColumns(placeCount, COLS);
+
+        for (let i = 0; i < placeCount; i++) {
+          placements.push({ ch: letters[i], row, col: cols[i], scale: 1, dir: 0, wordIndex });
+          placedChars++;
+        }
+      }
+
+      const rowCapacity = Math.ceil(ROWS / 2);
+      const capacity = rowCapacity * COLS;
+      return { placements, usedCells: placements.length, placedChars, totalChars, capacity };
+    }
+
+    function buildPlacementsCheck(text) {
+      const words = splitWords(text);
+      const placements = [];
+      const totalChars = words.reduce((sum, word) => sum + Array.from(word).length, 0);
+      let placedChars = 0;
+      if (COLS <= 0 || ROWS <= 1) {
+        return { placements, usedCells: 0, placedChars: 0, totalChars, capacity: 0 };
+      }
+      const occupied = new Uint8Array(CELL_COUNT);
+      let wordStartCol = 0;
+      let wordLowRow = ROWS - 1;
+
+      let exhausted = false;
+      for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+        const word = words[wordIndex];
+        const letters = Array.from(word);
+        if (!letters.length) continue;
+
+        let wordStepOffset = 0;
+        for (let i = 0; i < letters.length; i++) {
+          let placed = false;
+          const searchGuard = Math.max(1, CELL_COUNT * 4);
+
+          for (let tries = 0; tries < searchGuard; tries++) {
+            const rawCol = wordStartCol + wordStepOffset;
+            const rawRow = wordStepOffset % 2 === 0 ? wordLowRow : wordLowRow - 1;
+            wordStepOffset += 1;
+
+            const col = mirrorIndex(rawCol, COLS - 1);
+            const row = mirrorIndex(rawRow, ROWS - 1);
+            const idx = row * COLS + col;
+            if (occupied[idx]) continue;
+
+            placements.push({ ch: letters[i], row, col, scale: 1, dir: 0, wordIndex });
+            placedChars++;
+            occupied[idx] = 1;
+            placed = true;
+            break;
+          }
+
+          if (!placed) {
+            exhausted = true;
+            break;
+          }
+        }
+
+        wordStartCol += wordStepOffset;
+        wordLowRow -= 2;
+        if (exhausted) break;
+      }
+
+      const capacity = ROWS * COLS;
+      return { placements, usedCells: countUsedCells(occupied), placedChars, totalChars, capacity };
+    }
+
+    function buildPlacementsWard(text) {
+      const entries = buildSequentialCharEntries(text);
+      const placements = [];
+      const totalChars = entries.length;
+      if (COLS <= 0 || ROWS <= 0) {
+        return { placements, usedCells: 0, placedChars: 0, totalChars, capacity: 0 };
+      }
+
+      const occupied = new Uint8Array(CELL_COUNT);
+      const randomFn = createSeededRandom(`WARD|${WARD_SESSION_SEED}|${COLS}|${ROWS}|${CELL_SIZE}`);
+      const sequence = [
+        { axis: "row", dir: 1 }, // left-aligned row (left -> right)
+        { axis: "col", dir: 1 }, // top-aligned column (top -> bottom)
+      ];
+
+      let charIndex = 0;
+      let sequenceIndex = 0;
+      const guard = Math.max(1, entries.length * 8 + CELL_COUNT * 4);
+      let steps = 0;
+
+      while (charIndex < entries.length && steps < guard) {
+        const step = sequence[sequenceIndex % sequence.length];
+        let placed = 0;
+
+        if (step.axis === "row") {
+          const candidate = chooseWardRowCandidate(step.dir, occupied, randomFn);
+          if (!candidate) break;
+          placed = placeWardRow(entries, charIndex, candidate.row, step.dir, occupied, candidate.blocked, placements);
+        } else {
+          const candidate = chooseWardColCandidate(step.dir, occupied, randomFn);
+          if (!candidate) break;
+          placed = placeWardCol(entries, charIndex, candidate.col, step.dir, occupied, candidate.blocked, placements);
+        }
+
+        if (placed <= 0) break;
+        charIndex += placed;
+        sequenceIndex++;
+        steps++;
+      }
+
+      const capacity = CELL_COUNT;
+      return {
+        placements,
+        usedCells: countUsedCells(occupied),
+        placedChars: charIndex,
+        totalChars,
+        capacity,
+      };
+    }
+
+    function drawDiamondGrid() {
+      ctx.strokeStyle = "#b8b3a3";
+      ctx.lineWidth = 0.8;
+      const half = CELL_SIZE / 2;
+
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const cx = GRID_OFFSET_X + col * CELL_SIZE + half;
+          const cy = row * CELL_SIZE + half;
+
+          ctx.beginPath();
+          ctx.moveTo(cx, cy - half);
+          ctx.lineTo(cx + half, cy);
+          ctx.lineTo(cx, cy + half);
+          ctx.lineTo(cx - half, cy);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawRectangularGrid() {
+      const gridWidth = COLS * CELL_SIZE;
+      const gridHeight = ROWS * CELL_SIZE;
+
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          if ((row + col) % 2 === 0) {
+            ctx.fillStyle = "#f8f5ec";
+            ctx.fillRect(GRID_OFFSET_X + col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+          }
+        }
+      }
+
+      ctx.strokeStyle = "#c4beae";
+      ctx.lineWidth = 0.8;
+      for (let row = 0; row <= ROWS; row++) {
+        const y = row * CELL_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(GRID_OFFSET_X, y);
+        ctx.lineTo(GRID_OFFSET_X + gridWidth, y);
+        ctx.stroke();
+      }
+      for (let col = 0; col <= COLS; col++) {
+        const x = GRID_OFFSET_X + col * CELL_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, gridHeight);
+        ctx.stroke();
+      }
+    }
+
+    function drawBlackPlacementCell(placement) {
+      const size = Math.max(1, placement.scale || 1);
+      const x = GRID_OFFSET_X + placement.col * CELL_SIZE;
+      const y = placement.row * CELL_SIZE;
+      const blockSize = size * CELL_SIZE;
+
+      ctx.fillStyle = "#000";
+      if (currentMode === MODE_SOUP) {
+        const half = CELL_SIZE / 2;
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const dx = x + c * CELL_SIZE;
+            const dy = y + r * CELL_SIZE;
+            const cx = dx + half;
+            const cy = dy + half;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - half);
+            ctx.lineTo(cx + half, cy);
+            ctx.lineTo(cx, cy + half);
+            ctx.lineTo(cx - half, cy);
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+      } else {
+        ctx.fillRect(x, y, blockSize, blockSize);
+      }
+    }
+
+    function drawGrid(text) {
+      const sequentialEntries = buildSequentialCharEntries(text);
+      let layout;
+      if (currentMode === MODE_NORMAL) {
+        layout = buildPlacementsNormal(text);
+      } else if (currentMode === MODE_CHECK) {
+        layout = buildPlacementsCheck(text);
+      } else if (currentMode === MODE_WARD) {
+        layout = buildPlacementsWard(text);
+      } else {
+        layout = buildPlacementsSoup(sequentialEntries);
+      }
+
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+      drawModeImageTreatment(layout, text);
+
+      if (showGrid) {
+        if (currentMode === MODE_NORMAL || currentMode === MODE_CHECK || currentMode === MODE_WARD) {
+          drawRectangularGrid();
+        }
+        else drawDiamondGrid();
+      }
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#111";
+
+      for (const placement of layout.placements) {
+        if (placement.ch === " ") continue;
+        if (placement.ch === ".") {
+          drawBlackPlacementCell(placement);
+          continue;
+        }
+        const centerX = GRID_OFFSET_X + placement.col * CELL_SIZE + (placement.scale * CELL_SIZE) / 2;
+        const centerY = placement.row * CELL_SIZE + (placement.scale * CELL_SIZE) / 2;
+        const fontSize = Math.floor(CELL_SIZE * 0.7 * placement.scale);
+        ctx.font = `${fontSize}px ${MONO_FONT_STACK}`;
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        if (currentMode === MODE_SOUP) {
+          const angle = placement.dir === 1 ? -Math.PI / 4 : Math.PI / 4;
+          ctx.rotate(angle);
+        }
+        const strokeWidth = 0.04 * ((placement.wordIndex ?? 0) + 1);
+        ctx.lineWidth = strokeWidth;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "#111";
+        ctx.strokeText(placement.ch, 0, 0);
+        ctx.fillText(placement.ch, 0, 0);
+        ctx.restore();
+      }
+
+      const overflow =
+        currentMode === MODE_NORMAL || currentMode === MODE_CHECK || currentMode === MODE_WARD
+          ? Math.max(0, layout.totalChars - layout.placedChars)
+          : Math.max(0, sequentialEntries.length - layout.placedChars);
+      const capacity =
+        currentMode === MODE_NORMAL || currentMode === MODE_CHECK || currentMode === MODE_WARD
+          ? layout.capacity
+          : SAFE_CELL_COUNT;
+
+      usedLabel.textContent = `Used cells: ${layout.usedCells}`;
+      capacityLabel.textContent = `Capacity: ${capacity}`;
+      overflowLabel.textContent = `Overflow: ${overflow}`;
+    }
+
+    function updateModeButtons() {
+      soupModeBtn.classList.toggle("active", currentMode === MODE_SOUP);
+      normalModeBtn.classList.toggle("active", currentMode === MODE_NORMAL);
+      checkModeBtn.classList.toggle("active", currentMode === MODE_CHECK);
+      wardModeBtn.classList.toggle("active", currentMode === MODE_WARD);
+    }
+
+    function render() {
+      const text = normalizeText(input.value);
+      drawGrid(text);
+    }
+
+    input.addEventListener("input", () => render());
+    bgImageInput.addEventListener("change", (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      loadBackgroundFromFile(file);
+    });
+    clearBgBtn.addEventListener("click", () => {
+      clearBackgroundImage();
+      render();
+    });
+    speechBtn.addEventListener("click", () => {
+      if (!speechRecognition) return;
+      if (speechActive) {
+        stopSpeechCapture();
+      } else {
+        startSpeechCapture();
+      }
+    });
+    saveBtn.addEventListener("click", () => {
+      render();
+      savePrintImage();
+    });
+    soupModeBtn.addEventListener("click", () => {
+      currentMode = MODE_SOUP;
+      updateModeButtons();
+      render();
+    });
+    normalModeBtn.addEventListener("click", () => {
+      currentMode = MODE_NORMAL;
+      updateModeButtons();
+      render();
+    });
+    checkModeBtn.addEventListener("click", () => {
+      currentMode = MODE_CHECK;
+      updateModeButtons();
+      render();
+    });
+    wardModeBtn.addEventListener("click", () => {
+      currentMode = MODE_WARD;
+      updateModeButtons();
+      render();
+    });
+    cellSizeSelect.addEventListener("change", () => {
+      CELL_SIZE = Number(cellSizeSelect.value);
+      refreshGridMetrics();
+      render();
+    });
+    document.addEventListener("keydown", (event) => {
+      const target = event.target;
+      const typingInField =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable);
+
+      if (typingInField) return;
+      if (event.key.toLowerCase() !== "s") return;
+
+      showGrid = !showGrid;
+      render();
+    });
+    refreshGridMetrics();
+    updateModeButtons();
+    prepareControlFlicker();
+    setupSpeechRecognition();
+    startControlFlicker();
+    setupHoverBlackout();
+    runIntroSequence();
+  </script>
+</body>
+</html>
